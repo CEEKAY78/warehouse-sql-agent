@@ -1,7 +1,7 @@
 import duckdb
 import pytest
 
-from wsa.guard import GuardError, QueryTimeout, guard_sql, run_readonly
+from wsa.guard import GuardError, QueryTimeoutError, guard_sql, run_readonly
 
 
 @pytest.fixture(scope="module")
@@ -73,7 +73,7 @@ def test_database_cannot_be_written(db):
 
 
 def test_slow_query_times_out(db):
-    with pytest.raises(QueryTimeout):
+    with pytest.raises(QueryTimeoutError):
         run_readonly(
             db, "SELECT sum(a.range * b.range) FROM range(200000) a, range(200000) b",
             timeout_s=0.5,

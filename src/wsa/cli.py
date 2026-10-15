@@ -1,7 +1,7 @@
 """Command line: build the RAG index, ask one question, or run the evaluation.
 
     python -m wsa.cli index
-    python -m wsa.cli ask "Which 5 countries generated the highest net revenue?" [--model M] [--no-rag]
+    python -m wsa.cli ask "Which 5 countries had the highest net revenue?" [--model M] [--no-rag]
     python -m wsa.cli eval --model qwen2.5-coder:7b [--no-rag] [--limit 3] [--out PATH]
 """
 

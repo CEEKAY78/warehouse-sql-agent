@@ -35,7 +35,7 @@ class GuardError(QueryError):
     """The query is not a single read-only SELECT, or it tried to touch files."""
 
 
-class QueryTimeout(QueryError):
+class QueryTimeoutError(QueryError):
     """The query ran longer than the time limit."""
 
 
@@ -98,7 +98,7 @@ def run_readonly(
         raise GuardError(f"access denied: {exc}") from exc
     except duckdb.Error as exc:
         if timed_out.is_set():
-            raise QueryTimeout(f"query exceeded {timeout_s:g} s") from exc
+            raise QueryTimeoutError(f"query exceeded {timeout_s:g} s") from exc
         raise QueryError(str(exc)) from exc
     finally:
         timer.cancel()
