@@ -62,8 +62,10 @@ def test_run_readonly_returns_columns_and_rows(db):
     assert result.rows == [(0, 0), (1, 2), (2, 4)]
 
 
-def test_run_readonly_caps_rows(db):
-    assert len(run_readonly(db, "SELECT x FROM t", max_rows=20).rows) == 20
+def test_run_readonly_caps_rows_and_says_so(db):
+    capped = run_readonly(db, "SELECT x FROM t", max_rows=20)
+    assert len(capped.rows) == 20 and capped.truncated
+    assert not run_readonly(db, "SELECT x FROM t WHERE x < 20", max_rows=20).truncated
 
 
 def test_files_on_disk_cannot_be_read(db, tmp_path):

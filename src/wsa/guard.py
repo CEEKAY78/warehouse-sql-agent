@@ -44,6 +44,7 @@ class QueryResult:
     sql: str
     columns: list[str]
     rows: list[tuple] = field(default_factory=list)
+    truncated: bool = False  # more rows existed than the cap allowed
 
 
 def _clean(sql: str) -> str:
@@ -81,7 +82,7 @@ def run_readonly(
     timeout_s: float = DEFAULT_TIMEOUT_S,
 ) -> QueryResult:
     """Guard the query, then run it on a read-only connection without file access."""
-    capped = guard_sql(sql, max_rows=max_rows)
+    capped = guard_sql(sql, max_rows=max_rows + 1)  # one extra row reveals truncation
     con = duckdb.connect(
         str(db_path), read_only=True, config={"enable_external_access": False}
     )
@@ -106,4 +107,5 @@ def run_readonly(
     finally:
         timer.cancel()
         con.close()
-    return QueryResult(sql=_clean(sql), columns=columns, rows=rows)
+    return QueryResult(sql=_clean(sql), columns=columns, rows=rows[:max_rows],
+                       truncated=len(rows) > max_rows)

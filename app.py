@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -16,6 +15,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from wsa.cli import DEFAULT_MODEL, RAG, WAREHOUSE, make_agent  # noqa: E402
+from wsa.jsonl import read_jsonl  # noqa: E402
 
 MODELS = ["qwen2.5-coder:7b", "qwen2.5:7b-instruct", "qwen3:8b"]
 EXAMPLE_QUESTIONS = [
@@ -45,7 +45,7 @@ with st.sidebar:
     if runs:
         st.markdown("**Evaluation runs**")
         for path in runs:
-            rows = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x]
+            rows = read_jsonl(path, skip_broken=True)
             st.write(f"`{path.stem}`: {sum(r['correct'] for r in rows)}/{len(rows)}")
 
 
@@ -72,6 +72,8 @@ if question:
     if answer.result is not None:
         st.dataframe(pd.DataFrame(answer.result.rows, columns=answer.result.columns),
                      use_container_width=True)
+        if answer.result.truncated:
+            st.caption(f"Showing the first {len(answer.result.rows)} rows only.")
     cols = st.columns(3)
     cols[0].metric("SQL attempts", answer.attempts)
     grounded = "n/a" if answer.result is None else ("yes" if answer.grounded else "no")

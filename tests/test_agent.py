@@ -1,22 +1,10 @@
 import json
 
-from test_retriever import DOCS, WordCountEmbedder
+from fakes import DOCS, ScriptedLLM, WordCountEmbedder
 from wsa.agent import Agent
 from wsa.retriever import Retriever
 
 TOTAL = "SELECT round(sum(line_amount), 2) AS net_revenue FROM fact_sales"
-
-
-class ScriptedLLM:
-    """Fake chat client: returns the scripted replies in order and records the prompts."""
-
-    def __init__(self, *replies):
-        self.replies = list(replies)
-        self.prompts = []
-
-    def chat(self, messages, schema=None):
-        self.prompts.append(messages)
-        return self.replies.pop(0)
 
 
 def plan(sql=None, refuse=False, reason=""):

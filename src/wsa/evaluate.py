@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from wsa.guard import QueryError, run_readonly
+from wsa.jsonl import read_jsonl
 from wsa.matching import results_match
 
 GOLD_MAX_ROWS = 10_000
@@ -72,24 +73,15 @@ class Report:
 
 
 def load_questions(path: Path) -> list[EvalQuestion]:
-    out = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            q = json.loads(line)
-            out.append(EvalQuestion(q["id"], q["category"], q["question"], q.get("gold_sql")))
-    return out
+    return [EvalQuestion(q["id"], q["category"], q["question"], q.get("gold_sql"))
+            for q in read_jsonl(path)]
 
 
 def _read_done(out: Path) -> list[dict]:
     """Rows already scored; a half-written last line (the process died) is dropped."""
     if not out.exists():
         return []
-    rows = []
-    for line in out.read_text(encoding="utf-8").splitlines():
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError:
-            continue
+    rows = read_jsonl(out, skip_broken=True)
     out.write_text("".join(json.dumps(r, ensure_ascii=False, default=str) + "\n" for r in rows),
                    encoding="utf-8")
     return rows

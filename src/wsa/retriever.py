@@ -7,13 +7,14 @@ DuckDB (``list_cosine_similarity``); a few hundred documents need no vector inde
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 import duckdb
+
+from wsa.jsonl import read_jsonl
 
 
 class Embedder(Protocol):
@@ -66,13 +67,8 @@ def load_glossary(path: Path) -> list[Doc]:
 
 def load_examples(path: Path) -> list[Doc]:
     """Few-shot examples, one JSON object per line: {"id", "question", "sql"}."""
-    docs = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            ex = json.loads(line)
-            docs.append(Doc(id=f"e:{ex['id']}", kind="example", title=ex["question"],
-                            text=f"Q: {ex['question']}\nSQL: {ex['sql']}"))
-    return docs
+    return [Doc(id=f"e:{ex['id']}", kind="example", title=ex["question"],
+                text=f"Q: {ex['question']}\nSQL: {ex['sql']}") for ex in read_jsonl(path)]
 
 
 class Retriever:

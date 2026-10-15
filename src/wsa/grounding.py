@@ -5,8 +5,10 @@ a value that is available to the model:
 
 - a numeric cell of the result (also as a percentage: 0.2513 -> "25.1%");
 - a number inside a text or date cell (years, months, codes such as "2011-12");
-- a number in the user's question ("top 5", "in 2011");
-- a rank position 1..len(rows) (numbered lists).
+- a number in the user's question ("top 5", "in 2011").
+
+List numbering at the start of a line ("1.", "2)") is ignored; any other small integer must
+be grounded like every other number.
 
 Precision follows what is written: "1.2M" accepts anything within 1.15M-1.25M, "1,235" within
 1234.5-1235.5. Anything else is reported back as ungrounded, so the agent can be asked to
@@ -23,9 +25,12 @@ from decimal import Decimal
 from wsa.guard import QueryResult
 
 _NUMBER = re.compile(
-    r"(?<![\w.])(?P<int>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?P<frac>\d+))?(?P<suffix>%|k|K|M|bn)?(?!\w)"
+    r"(?<![\w.])(?P<int>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?P<frac>\d+))?"
+    r"(?P<suffix>%|k|K|M|bn| million| thousand| billion)?(?!\w)"
 )
-_MULTIPLIER = {"k": 1e3, "K": 1e3, "M": 1e6, "bn": 1e9}
+_MULTIPLIER = {"k": 1e3, "K": 1e3, "M": 1e6, "bn": 1e9, " thousand": 1e3, " million": 1e6,
+               " billion": 1e9}
+_LIST_MARKER = re.compile(r"^\s*\d+[.)](?=\s)", re.M)
 
 
 @dataclass(frozen=True)
@@ -67,7 +72,6 @@ def _cell_numbers(cell: object) -> list[float]:
 def available_numbers(result: QueryResult, question: str = "") -> list[float]:
     values = [v for row in result.rows for cell in row for v in _cell_numbers(cell)]
     values += [n.value for n in extract_numbers(question)]
-    values += [float(i) for i in range(1, len(result.rows) + 1)]
     return values
 
 
@@ -83,4 +87,5 @@ def _grounded(number: WrittenNumber, values: list[float]) -> bool:
 def check_numbers(answer: str, result: QueryResult, question: str = "") -> list[str]:
     """Return the numbers written in ``answer`` that are not supported by the result."""
     values = available_numbers(result, question)
-    return [n.text for n in extract_numbers(answer) if not _grounded(n, values)]
+    prose = _LIST_MARKER.sub("", answer)  # "1." / "2)" list numbering is not a claim
+    return [n.text for n in extract_numbers(prose) if not _grounded(n, values)]

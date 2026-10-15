@@ -35,6 +35,17 @@ def test_rounding_tolerance_follows_the_displayed_precision():
     assert check_numbers("About £1.3M.", res) == ["1.3M"]
 
 
+def test_spelled_out_magnitudes_are_read():
+    found = [(n.text, n.value) for n in extract_numbers("about 1.2 million and 3 thousand")]
+    assert found == [("1.2 million", 1.2e6), ("3 thousand", 3e3)]
+
+
+def test_small_integers_are_only_free_as_list_markers():
+    res = result(["product", "qty"], [("A", 900), ("B", 800)])
+    assert check_numbers("1. A: 900\n2) B: 800", res) == []
+    assert check_numbers("A sold 900 units to 2 shops.", res) == ["2"]
+
+
 def test_numbers_from_the_question_and_rank_positions_are_allowed():
     res = result(["product", "qty"], [("A", 900), ("B", 800), ("C", 700)])
     text = "Top 3 products in 2011:\n1. A: 900\n2. B: 800\n3. C: 700"

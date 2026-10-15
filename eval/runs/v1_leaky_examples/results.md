@@ -1,4 +1,4 @@
-| model | RAG | correct | simple | join | time | trap (refused) | false refusals | SQL repairs | median s/question |
+| model | RAG | correct | simple | join | time | trap (refused) | false refusals | 2nd attempts | median s/question |
 |---|---|---|---|---|---|---|---|---|---|
 | qwen2.5-coder:7b | no | **22/40** | 6/10 | 5/10 | 3/10 | 8/10 | 0 | 3 | 6.1 |
 | qwen2.5-coder:7b | yes | **37/40** | 9/10 | 8/10 | 10/10 | 10/10 | 1 | 1 | 8.6 |
