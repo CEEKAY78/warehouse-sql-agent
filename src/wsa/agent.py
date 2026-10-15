@@ -91,17 +91,27 @@ def result_table(result: QueryResult, max_rows: int = MAX_RESULT_ROWS_IN_PROMPT)
     return "\n".join(lines)
 
 
-def _parse_plan(text: str) -> dict:
-    try:
-        plan = json.loads(text)
-    except json.JSONDecodeError:
-        start, end = text.find("{"), text.rfind("}")
-        plan = json.loads(text[start : end + 1]) if start >= 0 < end else {}
-    return {
-        "sql": plan.get("sql") or None,
-        "refuse": bool(plan.get("refuse", False)),
-        "reason": str(plan.get("reason") or ""),
-    }
+def _parse_plan(text: str) -> dict | None:
+    """The model's JSON plan, or None when the reply is not a usable plan."""
+    candidates = [text]
+    start, end = text.find("{"), text.rfind("}")
+    if 0 <= start < end:
+        candidates.append(text[start : end + 1])
+    for candidate in candidates:
+        try:
+            plan = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(plan, dict):
+            continue
+        refuse = plan.get("refuse", False)
+        refuse = refuse.strip().lower() == "true" if isinstance(refuse, str) else refuse is True
+        sql = plan.get("sql")
+        if not refuse and not (isinstance(sql, str) and sql.strip()):
+            return None
+        return {"sql": None if refuse else sql, "refuse": refuse,
+                "reason": str(plan.get("reason") or "")}
+    return None
 
 
 class Agent:
@@ -142,7 +152,16 @@ class Agent:
             answer.attempts = attempt
             reply = self.llm.chat(messages, schema=PLAN_SCHEMA)
             plan = _parse_plan(reply)
-            if plan["refuse"] or not plan["sql"]:
+            if plan is None:
+                answer.error = "the reply was not a JSON plan with an sql query"
+                messages += [
+                    {"role": "assistant", "content": reply},
+                    {"role": "user", "content": "Reply with JSON only: "
+                                                '{"sql": "...", "refuse": false, "reason": "..."}'},
+                ]
+                continue
+            if plan["refuse"]:
+                # error is kept on purpose: "refused after a failed query" is worth logging
                 answer.refused = True
                 answer.sql = None
                 answer.text = plan["reason"] or "The data cannot answer this question."
@@ -165,7 +184,8 @@ class Agent:
         return answer
 
     def _explain(self, answer: Answer) -> None:
-        assert answer.result is not None
+        if answer.result is None:
+            return
         table = result_table(answer.result)
         messages = [
             {"role": "system", "content": EXPLAIN_RULES},

@@ -42,6 +42,13 @@ def test_missing_or_extra_rows_do_not_match():
     assert not results_match(result(["c"], [("France",), ("Spain",), ("Italy",)]), gold)
 
 
+def test_midnight_timestamp_matches_the_same_date():
+    from datetime import date, datetime
+
+    gold = result(["d"], [(date(2011, 12, 1),)])
+    assert results_match(result(["d"], [(datetime(2011, 12, 1),)]), gold)
+
+
 def test_text_is_compared_case_and_space_insensitive():
     gold = result(["d"], [("WHITE HANGING HEART T-LIGHT HOLDER",)])
     assert results_match(result(["d"], [("white hanging heart t-light holder ",)]), gold)

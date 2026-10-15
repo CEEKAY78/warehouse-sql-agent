@@ -81,9 +81,18 @@ def load_questions(path: Path) -> list[EvalQuestion]:
 
 
 def _read_done(out: Path) -> list[dict]:
+    """Rows already scored; a half-written last line (the process died) is dropped."""
     if not out.exists():
         return []
-    return [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines() if line]
+    rows = []
+    for line in out.read_text(encoding="utf-8").splitlines():
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    out.write_text("".join(json.dumps(r, ensure_ascii=False, default=str) + "\n" for r in rows),
+                   encoding="utf-8")
+    return rows
 
 
 def score_one(agent, q: EvalQuestion, db_path: Path, explain: bool = False) -> dict:

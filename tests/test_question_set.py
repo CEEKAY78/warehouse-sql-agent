@@ -40,6 +40,21 @@ def test_few_shot_examples_do_not_leak_eval_questions():
     assert not gold & {norm(e["sql"]) for e in EXAMPLES}
 
 
+def template(text):
+    """Text with literals blanked: the same question with another year or window is a leak."""
+    text = re.sub(r"'[^']*'", "'?'", text.lower())
+    text = re.sub(r"\b\d+\b", "0", text)
+    return norm(text)
+
+
+def test_few_shot_examples_are_not_the_eval_questions_with_other_literals():
+    asked = {template(q.question) for q in QUESTIONS}
+    gold = {template(q.gold_sql) for q in QUESTIONS if q.gold_sql}
+    leaks = [e["id"] for e in EXAMPLES
+             if template(e["question"]) in asked or template(e["sql"]) in gold]
+    assert leaks == []
+
+
 def test_knowledge_files_load():
     assert len(load_glossary(ROOT / "knowledge" / "glossary.md")) >= 10
     assert len(load_examples(ROOT / "knowledge" / "examples.jsonl")) == len(EXAMPLES)

@@ -26,6 +26,8 @@ def _norm(cell: object) -> object:
         return cell
     if isinstance(cell, int | float | Decimal):
         return round(float(cell), 2) + 0.0
+    if isinstance(cell, datetime) and cell.time() == datetime.min.time():
+        return cell.date().isoformat()
     if isinstance(cell, datetime | date):
         return cell.isoformat()
     return " ".join(str(cell).split()).lower()

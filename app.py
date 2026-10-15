@@ -74,7 +74,8 @@ if question:
                      use_container_width=True)
     cols = st.columns(3)
     cols[0].metric("SQL attempts", answer.attempts)
-    cols[1].metric("Numbers grounded", "yes" if answer.grounded else "no")
+    grounded = "n/a" if answer.result is None else ("yes" if answer.grounded else "no")
+    cols[1].metric("Numbers grounded", grounded)
     cols[2].metric("Rows", len(answer.result.rows) if answer.result else 0)
     if answer.context_ids:
         st.caption("Retrieved context: " + ", ".join(answer.context_ids))

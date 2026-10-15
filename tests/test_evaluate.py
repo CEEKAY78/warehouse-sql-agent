@@ -56,6 +56,8 @@ def test_each_question_is_written_to_jsonl_and_a_rerun_resumes(warehouse_path, t
     assert [r["id"] for r in rows] == ["q1", "q2"] and all(r["correct"] for r in rows)
     assert {"sql", "refused", "seconds", "error", "category"} <= set(rows[0])
 
+    with out.open("a", encoding="utf-8") as f:
+        f.write('{"id": "q3", "categ')  # the process died while writing this line
     agent = FakeAgent(warehouse_path, plan)
     report = evaluate(agent, QUESTIONS, warehouse_path, out)
     assert agent.calls == ["Revenue in 2011?", "Gross margin?", "Stock level?"]

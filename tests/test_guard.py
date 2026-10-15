@@ -28,9 +28,15 @@ def test_markdown_fences_are_stripped():
     )
 
 
+def test_leading_comments_and_parentheses_are_accepted():
+    assert guard_sql("-- total\nSELECT 1", max_rows=3).endswith("LIMIT 3")
+    assert guard_sql("(SELECT 1) UNION ALL (SELECT 2)", max_rows=3).endswith("LIMIT 3")
+
+
 @pytest.mark.parametrize(
     "sql",
     [
+        "-- harmless?\nDROP TABLE t",
         "DROP TABLE t",
         "INSERT INTO t VALUES (1)",
         "UPDATE t SET x = 1",

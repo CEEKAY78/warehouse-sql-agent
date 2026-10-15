@@ -88,6 +88,20 @@ def test_retrieved_glossary_and_examples_are_put_in_the_prompt(warehouse_path, t
     assert "g:net_revenue" in answer.context_ids
 
 
+def test_reply_that_is_not_a_json_plan_is_repaired_like_a_failing_query(warehouse_path):
+    for garbage in ["}{", "null", "[1, 2]", "Sure! Here is the query.", '{"sql": 42}']:
+        llm = ScriptedLLM(garbage, plan(TOTAL))
+        answer = Agent(warehouse_path, llm).ask("What is the net revenue?", explain=False)
+        assert answer.result.rows == [(130.25,)], garbage
+        assert answer.attempts == 2
+
+
+def test_refuse_given_as_a_string_is_read_by_its_value(warehouse_path):
+    reply = json.dumps({"sql": TOTAL, "refuse": "false", "reason": ""})
+    answer = Agent(warehouse_path, ScriptedLLM(reply)).ask("Net revenue?", explain=False)
+    assert not answer.refused and answer.result.rows == [(130.25,)]
+
+
 def test_without_explanation_only_the_sql_step_calls_the_model(warehouse_path):
     llm = ScriptedLLM(plan(TOTAL))
     answer = Agent(warehouse_path, llm).ask("What is the net revenue?", explain=False)

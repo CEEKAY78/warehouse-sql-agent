@@ -24,7 +24,7 @@ DEFAULT_MAX_ROWS = 200
 DEFAULT_TIMEOUT_S = 15.0
 
 _FENCE = re.compile(r"^```[a-zA-Z]*\s*|\s*```$")
-_FIRST_WORD = re.compile(r"^\s*(\w+)")
+_FIRST_WORD = re.compile(r"^(?:\s+|--[^\n]*\n?|/\*.*?\*/|\()*(\w+)", re.S)
 
 
 class QueryError(Exception):
@@ -55,10 +55,13 @@ def guard_sql(sql: str, max_rows: int = DEFAULT_MAX_ROWS) -> str:
     text = _clean(sql)
     if not text:
         raise GuardError("empty query")
+    parser = duckdb.connect()
     try:
-        statements = duckdb.connect().extract_statements(text)
+        statements = parser.extract_statements(text)
     except duckdb.Error as exc:
         raise GuardError(f"SQL does not parse: {exc}") from exc
+    finally:
+        parser.close()
     if len(statements) != 1:
         raise GuardError(f"expected exactly one statement, got {len(statements)}")
     first = _FIRST_WORD.match(text)
