@@ -1,7 +1,6 @@
 import json
 
 from test_retriever import DOCS, WordCountEmbedder
-
 from wsa.agent import Agent
 from wsa.retriever import Retriever
 
