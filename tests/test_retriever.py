@@ -44,6 +44,19 @@ def test_index_is_persisted_and_reopened_without_re_embedding_documents(tmp_path
     assert embedder.calls == 1  # only the question was embedded
 
 
+def test_precomputed_embeddings_are_used_without_calling_the_model(tmp_path):
+    from wsa.retriever import CachedEmbedder
+
+    inner = WordCountEmbedder()
+    cached = CachedEmbedder(inner)
+    cached.warm(["revenue per country", "products by month"])
+    assert inner.calls == 1
+    assert cached.embed(["products by month"]) == inner.embed(["products by month"])
+    assert inner.calls == 2  # only the direct inner call above
+    cached.embed(["something new"])
+    assert inner.calls == 3
+
+
 def test_glossary_markdown_is_split_into_one_doc_per_heading(tmp_path):
     md = tmp_path / "glossary.md"
     md.write_text("# Glossary\n\n## Net revenue\nSum of line_amount.\n\n## Order\nOne invoice.\n",

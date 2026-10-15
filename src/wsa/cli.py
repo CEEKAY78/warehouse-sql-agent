@@ -14,7 +14,7 @@ from pathlib import Path
 from wsa.agent import Agent, result_table
 from wsa.evaluate import evaluate, load_questions
 from wsa.ollama import OllamaChat, OllamaEmbedder
-from wsa.retriever import Retriever, load_examples, load_glossary
+from wsa.retriever import CachedEmbedder, Retriever, load_examples, load_glossary
 
 ROOT = Path(__file__).resolve().parents[2]
 WAREHOUSE = ROOT / "data" / "warehouse.duckdb"
@@ -74,6 +74,10 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     questions = load_questions(ROOT / "eval" / "questions.jsonl")[: args.limit]
+    if agent.retriever is not None:
+        cached = CachedEmbedder(agent.retriever.embedder)
+        cached.warm([q.question for q in questions])
+        agent.retriever.embedder = cached
     out = args.out or ROOT / "eval" / "runs" / f"{run_slug(args.model, not args.no_rag)}.jsonl"
     report = evaluate(agent, questions, WAREHOUSE, out, explain=args.explain)
     print(f"{args.model} rag={not args.no_rag}: {report.correct}/{report.total} correct")

@@ -20,6 +20,28 @@ class Embedder(Protocol):
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
 
+class CachedEmbedder:
+    """Embeds many texts in one batch up front (``warm``), then answers from the cache.
+
+    On a small GPU Ollama swaps the embedding model and the chat model in and out of memory
+    when calls alternate; embedding every evaluation question first avoids that (from ~90 s
+    to a few seconds per question).
+    """
+
+    def __init__(self, inner: Embedder):
+        self.inner = inner
+        self.cache: dict[str, list[float]] = {}
+
+    def warm(self, texts: list[str]) -> None:
+        todo = [t for t in dict.fromkeys(texts) if t not in self.cache]
+        if todo:
+            self.cache.update(zip(todo, self.inner.embed(todo), strict=True))
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        self.warm(texts)
+        return [self.cache[t] for t in texts]
+
+
 @dataclass(frozen=True)
 class Doc:
     id: str
